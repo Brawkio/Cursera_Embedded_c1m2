@@ -10,8 +10,15 @@
 #*****************************************************************************
 
 # Add your Source files to this variable
-SOURCES =
+SOURCES := main.c \
+	   memory.c \
+startup_msp432p401r_gcc.c \
+system_msp432p401r.c \
+interrupts_msp432p401r_gcc.c
+
 
 # Add your include paths to this variable
-INCLUDES = 
+INCLUDES = -I home/ecee/C1M2-PERAZA/include/CMSIS \
+home/ecee/C1M2-PERAZA/include/common \
+home/ecee/C1M2-PERAZA/include/msp432
 
