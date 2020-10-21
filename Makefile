@@ -41,29 +41,30 @@ ifeq ($(PLATFORM),HOST)
 	LD = ld
 	OBJECTS = $(SOURCES:.c=.o)#OBJECTS is a vector which contains all the .o associated/created files of the source files
 	LDFLAGS = -Wl,-Map=$(TARGET).map
-	CPPFLAGS = -g -O0 -std=c99 -Wall -Werror  $(INCLUDES)
+	CPPFLAGS = -g -O0 -std=c99 -Wall -Werror $(INCLUDES)
 else
 	CC = arm-none-eabi-gcc
 	CFLAGS = -DMSP432 -mcpu=$(CPU) -march=$(ARCH) -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 --specs=$(SPECS) 
 	LD = arm-none-eabi-ld
 	OBJECTS = $(SOURCES_MSP432:.c=.o)
 	LDFLAGS = -Wl,-Map=$(TARGET).map -T../$(LINKER_FILE)
-	CPPFLAGS = -g -O0 -std=c99 -Wall -Werror  $(INCLUDES_MSP432)
+	CPPFLAGS = -g -O0 -std=c99 -Wall -Werror $(INCLUDES_MSP432)
 endif
 
 #********************************************Targets*****************************************************
-#Any .o, .i and .asm file to be created will have a .c file associated with the same name
+#The format %.*:%.c makes sure that any .o, .i or .asm file to be created will have a .c file associated with the same name
 
 # FILE.i target binary
 %.i: %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -E $@
+	$(CC) -E $< $(CFLAGS) $(CPPFLAGS) -o $@
 
 
 # FILE.asm target binary
 %.asm: %.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -S $@ #utilize -objump utility
+	$(CC) -S $< $(CFLAGS) $(CPPFLAGS) -o $@ #utilize -objump utility
 
-# FILE.o target binary
+# FILE.o target binary stop after the stage of compilation proper; do not assemble. The output is in the form of an assembler code file for
+#each non-assembler input file specified
 $%.o: %.c
 	$(CC) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
 
@@ -71,17 +72,19 @@ $%.o: %.c
 .PHONY: compile_all
 compile_all: $(TARGET)	
 $(TARGET): $(OBJECTS)
-	$(CC) -c $< $(OBJECTS) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+	$(CC) -c $< $(OBJECTS) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@
 
 
 # Build of all source files
 .PHONY: build
-build:all
+build: $(TARGET).out	
+$(TARGET).out: $(OBJECTS)
+	$(CC) $(OBJECTS) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@
 
 
 # Cleans all generated files from the build
 .PHONY: clean
 clean:
-	rm -f $(OBJECTS) $(TARGET).out $(TARGET).map
+	rm -f $(OBJECTS) $(TARGET).out $(TARGET).map $(TARGET).asm $(TARGET).i
 
 
