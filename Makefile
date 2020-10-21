@@ -23,52 +23,65 @@
 # 
 # Platform Overrides:
 #      
-# PLATFORM - Developmet platform used (MSP432,HOST)
+# PLATFORM - Developmet platform used (-DMSP432,-DHOST)
 #------------------------------------------------------------------------------
 include sources.mk
+
+LINKER_FILE = msp432p401r.lds 
+CPU = cortex-m4
+ARCH = armv7e-m
+SPECS = nosys.specs
+TARGET = c1m2
 
 # Platform Overrides
 	
 ifeq ($(PLATFORM),HOST)
-		CC = gcc
-		# etc
-		CPU = 
-		ARCH = 
-		SPECS = 
-	else
-		# Architectures Specific Flags		
-		CC = arm-none-eabi-gcc
-		CPU = -mcpu=cortex-m4
-		ARCH = -mthumb -march=armv7e-m -mfloat-abi=hard -mfpu=fpv4-sp-d16
-		SPECS = --specs=nosys.specs
-		LD = arm-none-eabi-ld
-		# Platform Specific Flags
-		LNKER_FILE = -T msp432p401r.lds
+	CC = gcc 
+	CFLAGS = -DHOST  
+	LD = ld
+	OBJECTS = $(SOURCES:.c=.o)#OBJECTS is a vector which contains all the .o associated/created files of the source files
+	LDFLAGS = -Wl,-Map=$(TARGET).map
+	CPPFLAGS = -g -O0 -std=c99 -Wall -Werror  $(INCLUDES)
+else
+	CC = arm-none-eabi-gcc
+	CFLAGS = -DMSP432 -mcpu=$(CPU) -march=$(ARCH) -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 --specs=$(SPECS) 
+	LD = arm-none-eabi-ld
+	OBJECTS = $(SOURCES_MSP432:.c=.o)
+	LDFLAGS = -Wl,-Map=$(TARGET).map -T../$(LINKER_FILE)
+	CPPFLAGS = -g -O0 -std=c99 -Wall -Werror  $(INCLUDES_MSP432)
+endif
 
-	endif
+#********************************************Targets*****************************************************
+#Any .o, .i and .asm file to be created will have a .c file associated with the same name
 
-# Compiler Flags and Defines
-CFLAGS = -Wall -Werror -std=c99 -g
-CPPFLAGS = 
-BASENAME = c1m2
-TARGET = $(BASENAME).out
-LDFLAGS = -O0 -map=$(BASENAME).map
+# FILE.i target binary
+%.i: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -E $@
 
-OBJECTS  :=$(SOURCES:.c=.o)
 
-%.o : %.c
-	$(CC) -c
+# FILE.asm target binary
+%.asm: %.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -S $@ #utilize -objump utility
+
+# FILE.o target binary
+$%.o: %.c
+	$(CC) -c $< $(CFLAGS) $(CPPFLAGS) -o $@
+
+# Compilation of all source files without linking them
+.PHONY: compile_all
+compile_all: $(TARGET)	
+$(TARGET): $(OBJECTS)
+	$(CC) -c $< $(OBJECTS) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS)
+
+
+# Build of all source files
 .PHONY: build
 build:all
-.PHONY: all
-all: $(TARGET)
 
-$(TARGET): $(OBJECTS) $(CFLAGS) $(LDFFLAGS) -o $@
 
+# Cleans all generated files from the build
 .PHONY: clean
 clean:
-	rm -f $(OBJECTS) $(TARGET) $(BASENAME)
-
-
+	rm -f $(OBJECTS) $(TARGET).out $(TARGET).map
 
 
